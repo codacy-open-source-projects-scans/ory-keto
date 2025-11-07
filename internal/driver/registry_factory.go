@@ -14,6 +14,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/gofrs/uuid"
+
 	"github.com/ory/x/configx"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/otelx"
@@ -87,6 +89,7 @@ func NewDefaultRegistry(ctx context.Context, flags *pflag.FlagSet, withoutNetwor
 		extraMigrations:           options.ExtraMigrations(),
 		defaultMigrationOptions:   options.MigrationOptions(),
 		healthReadyCheckers:       options.ReadyCheckers(),
+		dbOpts:                    options.DBOptionsModifiers(),
 	}
 
 	init := r.Init
@@ -206,9 +209,10 @@ func NewTestRegistry(t testing.TB, dsn *dbx.DsnT, opts ...TestRegistryOption) *R
 	t.Cleanup(cancel)
 
 	ctx = configx.ContextWithConfigOptions(ctx, configx.WithValues(map[string]interface{}{
-		config.KeyDSN:        dsn.Conn,
-		"log.level":          "info",
-		config.KeyNamespaces: []*namespace.Namespace{},
+		config.KeyDSN:               dsn.Conn,
+		"log.level":                 "info",
+		config.KeyNamespaces:        []*namespace.Namespace{},
+		config.KeySecretsPagination: []string{uuid.Must(uuid.NewV4()).String()},
 	}))
 	c, err := config.NewDefault(ctx, nil, l)
 	require.NoError(t, err)

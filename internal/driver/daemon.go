@@ -15,7 +15,9 @@ import (
 	"syscall"
 	"time"
 
+	grpcOtel "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 
 	"github.com/ory/x/otelx/semconv"
 
@@ -27,11 +29,8 @@ import (
 	"github.com/ory/keto/internal/schema"
 	rts "github.com/ory/keto/proto/ory/keto/relation_tuples/v1alpha2"
 
-	prometheus "github.com/ory/x/prometheusx"
-	grpcOtel "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/otel"
-
 	"github.com/ory/x/logrusx"
+	prometheus "github.com/ory/x/prometheusx"
 
 	grpcLogrus "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/julienschmidt/httprouter"
@@ -51,6 +50,7 @@ import (
 	"github.com/ory/x/healthx"
 	"github.com/ory/x/metricsx"
 	"github.com/ory/x/otelx"
+	"github.com/ory/x/urlx"
 	"github.com/spf13/cobra"
 
 	"github.com/ory/keto/internal/driver/config"
@@ -64,6 +64,28 @@ import (
 
 func (r *RegistryDefault) enableSqa(cmd *cobra.Command) {
 	ctx := cmd.Context()
+
+	var urls []string
+	addr, _ := r.Config(ctx).ReadAPIListenOn()
+	urls = append(urls, addr)
+	addr, _ = r.Config(ctx).WriteAPIListenOn()
+	urls = append(urls, addr)
+	addr, _ = r.Config(ctx).MetricsListenOn()
+	urls = append(urls, addr)
+	addr, _ = r.Config(ctx).OPLSyntaxAPIListenOn()
+	urls = append(urls, addr)
+
+	if c, y := r.Config(ctx).CORS("read"); y {
+		urls = append(urls, c.AllowedOrigins...)
+	}
+	if c, y := r.Config(ctx).CORS("write"); y {
+		urls = append(urls, c.AllowedOrigins...)
+	}
+	if c, y := r.Config(ctx).CORS("metrics"); y {
+		urls = append(urls, c.AllowedOrigins...)
+	}
+
+	host := urlx.ExtractPublicAddress(urls...)
 
 	r.sqaService = metricsx.New(
 		cmd,
@@ -94,6 +116,7 @@ func (r *RegistryDefault) enableSqa(cmd *cobra.Command) {
 				BatchSize:            1000,
 				Interval:             time.Hour * 6,
 			},
+			Hostname: host,
 		},
 	)
 }
@@ -299,7 +322,7 @@ func multiplexPort(ctx context.Context, log *logrusx.Logger, addr, listenFile st
 		shutdownEg := errgroup.Group{}
 		shutdownEg.Go(func() error {
 			// we ignore net.ErrClosed, because a cmux listener's close func is actually the one of the root listener (which is closed in a racy fashion)
-			if err := restS.Shutdown(ctx); !(err == nil || errors.Is(err, http.ErrServerClosed) || errors.Is(err, net.ErrClosed)) {
+			if err := restS.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
 				// unexpected error
 				return errors.WithStack(err)
 			}
@@ -346,7 +369,7 @@ func listenAndWriteFile(ctx context.Context, addr, listenFile string) (net.Liste
 	}
 	const filePrefix = "file://"
 	if strings.HasPrefix(listenFile, filePrefix) {
-		if err := os.WriteFile(listenFile[len(filePrefix):], []byte(l.Addr().String()), 0600); err != nil {
+		if err := os.WriteFile(listenFile[len(filePrefix):], []byte(l.Addr().String()), 0o600); err != nil {
 			return nil, errors.WithStack(fmt.Errorf("unable to write listen file %q: %w", listenFile, err))
 		}
 	}
@@ -477,9 +500,6 @@ func (r *RegistryDefault) unaryInterceptors(ctx context.Context) []grpc.UnarySer
 	is := []grpc.UnaryServerInterceptor{
 		grpcRecovery.UnaryServerInterceptor(grpcRecovery.WithRecoveryHandler(r.grpcRecoveryHandler)),
 	}
-	if r.Tracer(ctx).IsLoaded() {
-		is = append(is, grpcOtel.UnaryServerInterceptor(grpcOtel.WithTracerProvider(otel.GetTracerProvider())))
-	}
 	is = append(is, r.defaultUnaryInterceptors...)
 	is = append(is,
 		herodot.UnaryErrorUnwrapInterceptor,
@@ -495,9 +515,6 @@ func (r *RegistryDefault) unaryInterceptors(ctx context.Context) []grpc.UnarySer
 func (r *RegistryDefault) streamInterceptors(ctx context.Context) []grpc.StreamServerInterceptor {
 	is := []grpc.StreamServerInterceptor{
 		grpcRecovery.StreamServerInterceptor(grpcRecovery.WithRecoveryHandler(r.grpcRecoveryHandler)),
-	}
-	if r.Tracer(ctx).IsLoaded() {
-		is = append(is, grpcOtel.StreamServerInterceptor(grpcOtel.WithTracerProvider(otel.GetTracerProvider())))
 	}
 	is = append(is, r.defaultStreamInterceptors...)
 	is = append(is,
@@ -516,6 +533,12 @@ func (r *RegistryDefault) newGrpcServer(ctx context.Context) *grpc.Server {
 		grpc.ChainStreamInterceptor(r.streamInterceptors(ctx)...),
 		grpc.ChainUnaryInterceptor(r.unaryInterceptors(ctx)...),
 	}
+	if r.Tracer(ctx).IsLoaded() {
+		opts = append(opts,
+			grpc.StatsHandler(grpcOtel.NewServerHandler(grpcOtel.WithTracerProvider(otel.GetTracerProvider()))),
+		)
+	}
+
 	opts = append(opts, r.defaultGRPCServerOptions...)
 	if r.grpcTransportCredentials != nil {
 		opts = append(opts, grpc.Creds(r.grpcTransportCredentials))

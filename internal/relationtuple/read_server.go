@@ -6,19 +6,14 @@ package relationtuple
 import (
 	"context"
 	"net/http"
-	"strconv"
 
+	"github.com/julienschmidt/httprouter"
+	"github.com/ory/herodot"
+	keysetpagination "github.com/ory/x/pagination/keysetpagination_v2"
 	"github.com/ory/x/pointerx"
 
 	"github.com/ory/keto/ketoapi"
-
 	rts "github.com/ory/keto/proto/ory/keto/relation_tuples/v1alpha2"
-
-	"github.com/ory/herodot"
-
-	"github.com/julienschmidt/httprouter"
-
-	"github.com/ory/keto/internal/x"
 )
 
 var (
@@ -83,10 +78,20 @@ func (h *handler) ListRelationTuples(ctx context.Context, req *rts.ListRelationT
 	if err != nil {
 		return nil, err
 	}
-	ir, nextPage, err := h.d.RelationTupleManager().GetRelationTuples(ctx, iq,
-		x.WithSize(int(req.PageSize)),
-		x.WithToken(req.PageToken),
-	)
+
+	paginationKeys := h.d.Config(ctx).PaginationEncryptionKeys()
+	pageOpts := make([]keysetpagination.Option, 0, 2)
+	if req.PageSize > 0 {
+		pageOpts = append(pageOpts, keysetpagination.WithSize(int(req.PageSize)))
+	}
+	if req.PageToken != "" {
+		token, err := keysetpagination.ParsePageToken(paginationKeys, req.PageToken)
+		if err != nil {
+			return nil, herodot.ErrBadRequest.WithError(err.Error())
+		}
+		pageOpts = append(pageOpts, keysetpagination.WithToken(token))
+	}
+	ir, nextPage, err := h.d.RelationTupleManager().GetRelationTuples(ctx, iq, pageOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +102,9 @@ func (h *handler) ListRelationTuples(ctx context.Context, req *rts.ListRelationT
 
 	resp := &rts.ListRelationTuplesResponse{
 		RelationTuples: make([]*rts.RelationTuple, len(ir)),
-		NextPageToken:  nextPage,
+	}
+	if !nextPage.IsLast() {
+		resp.NextPageToken = nextPage.PageToken().Encrypt(paginationKeys)
 	}
 	for i, r := range relations {
 		resp.RelationTuples[i] = r.ToProto()
@@ -140,18 +147,11 @@ func (h *handler) getRelations(w http.ResponseWriter, r *http.Request, _ httprou
 	}
 	l.Debug("querying relationships")
 
-	var paginationOpts []x.PaginationOptionSetter
-	if pageToken := q.Get("page_token"); pageToken != "" {
-		paginationOpts = append(paginationOpts, x.WithToken(pageToken))
-	}
-
-	if pageSize := q.Get("page_size"); pageSize != "" {
-		s, err := strconv.ParseInt(pageSize, 0, 0)
-		if err != nil {
-			h.d.Writer().WriteError(w, r, herodot.ErrBadRequest.WithError(err.Error()))
-			return
-		}
-		paginationOpts = append(paginationOpts, x.WithSize(int(s)))
+	paginationKeys := h.d.Config(ctx).PaginationEncryptionKeys()
+	paginationOpts, err := keysetpagination.ParseQueryParams(paginationKeys, q)
+	if err != nil {
+		h.d.Writer().WriteError(w, r, herodot.ErrBadRequest.WithError(err.Error()))
+		return
 	}
 
 	iq, err := h.d.ReadOnlyMapper().FromQuery(ctx, query)
@@ -173,7 +173,9 @@ func (h *handler) getRelations(w http.ResponseWriter, r *http.Request, _ httprou
 
 	resp := &ketoapi.GetResponse{
 		RelationTuples: relations,
-		NextPageToken:  nextPage,
+	}
+	if !nextPage.IsLast() {
+		resp.NextPageToken = nextPage.PageToken().Encrypt(paginationKeys)
 	}
 
 	h.d.Writer().Write(w, r, resp)

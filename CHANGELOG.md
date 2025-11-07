@@ -5,116 +5,124 @@
 
 **Table of Contents**
 
-- [0.0.0 (2025-01-02)](#000-2025-01-02)
+- [0.0.0 (2025-11-07)](#000-2025-11-07)
+- [25.4.0 (2025-11-06)](#2540-2025-11-06)
   - [Bug Fixes](#bug-fixes)
+  - [Chores](#chores)
+  - [Code Refactoring](#code-refactoring)
   - [Features](#features)
-- [0.13.0-alpha.0 (2024-02-27)](#0130-alpha0-2024-02-27)
+  - [Tests](#tests)
+- [0.14.0 (2025-03-06)](#0140-2025-03-06)
   - [Bug Fixes](#bug-fixes-1)
   - [Code Generation](#code-generation)
-- [0.12.0-alpha.0 (2024-02-01)](#0120-alpha0-2024-02-01)
+  - [Features](#features-1)
+- [0.13.0-alpha.0 (2024-02-27)](#0130-alpha0-2024-02-27)
   - [Bug Fixes](#bug-fixes-2)
   - [Code Generation](#code-generation-1)
-  - [Documentation](#documentation)
-  - [Features](#features-1)
-- [0.11.1-alpha.0 (2023-03-09)](#0111-alpha0-2023-03-09)
+- [0.12.0-alpha.0 (2024-02-01)](#0120-alpha0-2024-02-01)
   - [Bug Fixes](#bug-fixes-3)
   - [Code Generation](#code-generation-2)
+  - [Documentation](#documentation)
   - [Features](#features-2)
-  - [Tests](#tests)
-- [0.11.0-alpha.0 (2023-02-23)](#0110-alpha0-2023-02-23)
-  - [Code Generation](#code-generation-3)
-- [0.11.0-alpha.0.pre.1 (2023-02-23)](#0110-alpha0pre1-2023-02-23)
+- [0.11.1-alpha.0 (2023-03-09)](#0111-alpha0-2023-03-09)
   - [Bug Fixes](#bug-fixes-4)
-  - [Code Generation](#code-generation-4)
-  - [Code Refactoring](#code-refactoring)
-  - [Documentation](#documentation-1)
+  - [Code Generation](#code-generation-3)
   - [Features](#features-3)
   - [Tests](#tests-1)
-  - [Unclassified](#unclassified)
-- [0.10.0-alpha.0 (2022-09-27)](#0100-alpha0-2022-09-27)
+- [0.11.0-alpha.0 (2023-02-23)](#0110-alpha0-2023-02-23)
+  - [Code Generation](#code-generation-4)
+- [0.11.0-alpha.0.pre.1 (2023-02-23)](#0110-alpha0pre1-2023-02-23)
   - [Bug Fixes](#bug-fixes-5)
-  - [Build System](#build-system)
   - [Code Generation](#code-generation-5)
   - [Code Refactoring](#code-refactoring-1)
-  - [Documentation](#documentation-2)
+  - [Documentation](#documentation-1)
   - [Features](#features-4)
   - [Tests](#tests-2)
+  - [Unclassified](#unclassified)
+- [0.10.0-alpha.0 (2022-09-27)](#0100-alpha0-2022-09-27)
+  - [Bug Fixes](#bug-fixes-6)
+  - [Build System](#build-system)
+  - [Code Generation](#code-generation-6)
+  - [Code Refactoring](#code-refactoring-2)
+  - [Documentation](#documentation-2)
+  - [Features](#features-5)
+  - [Tests](#tests-3)
 - [0.9.0-alpha.0 (2022-08-01)](#090-alpha0-2022-08-01)
   - [Breaking Changes](#breaking-changes)
-    - [Bug Fixes](#bug-fixes-6)
-    - [Code Generation](#code-generation-6)
-    - [Code Refactoring](#code-refactoring-2)
+    - [Bug Fixes](#bug-fixes-7)
+    - [Code Generation](#code-generation-7)
+    - [Code Refactoring](#code-refactoring-3)
     - [Documentation](#documentation-3)
-    - [Features](#features-5)
-    - [Tests](#tests-3)
+    - [Features](#features-6)
+    - [Tests](#tests-4)
 - [0.8.0-alpha.2 (2022-03-04)](#080-alpha2-2022-03-04)
-  - [Bug Fixes](#bug-fixes-7)
-  - [Code Generation](#code-generation-7)
-  - [Documentation](#documentation-4)
-- [0.8.0-alpha.1 (2022-02-22)](#080-alpha1-2022-02-22)
   - [Bug Fixes](#bug-fixes-8)
   - [Code Generation](#code-generation-8)
-  - [Tests](#tests-4)
-- [0.8.0-alpha.0 (2022-02-10)](#080-alpha0-2022-02-10)
+  - [Documentation](#documentation-4)
+- [0.8.0-alpha.1 (2022-02-22)](#080-alpha1-2022-02-22)
   - [Bug Fixes](#bug-fixes-9)
   - [Code Generation](#code-generation-9)
-  - [Code Refactoring](#code-refactoring-3)
-  - [Documentation](#documentation-5)
-  - [Features](#features-6)
-- [0.7.0-alpha.1 (2021-10-19)](#070-alpha1-2021-10-19)
+  - [Tests](#tests-5)
+- [0.8.0-alpha.0 (2022-02-10)](#080-alpha0-2022-02-10)
+  - [Bug Fixes](#bug-fixes-10)
   - [Code Generation](#code-generation-10)
+  - [Code Refactoring](#code-refactoring-4)
+  - [Documentation](#documentation-5)
+  - [Features](#features-7)
+- [0.7.0-alpha.1 (2021-10-19)](#070-alpha1-2021-10-19)
+  - [Code Generation](#code-generation-11)
   - [Documentation](#documentation-6)
 - [0.7.0-alpha.0 (2021-10-06)](#070-alpha0-2021-10-06)
   - [Breaking Changes](#breaking-changes-1)
-    - [Bug Fixes](#bug-fixes-10)
-    - [Chores](#chores)
-    - [Code Generation](#code-generation-11)
-    - [Code Refactoring](#code-refactoring-4)
+    - [Bug Fixes](#bug-fixes-11)
+    - [Chores](#chores-1)
+    - [Code Generation](#code-generation-12)
+    - [Code Refactoring](#code-refactoring-5)
     - [Documentation](#documentation-7)
-    - [Features](#features-7)
-    - [Tests](#tests-5)
+    - [Features](#features-8)
+    - [Tests](#tests-6)
 - [0.6.0-alpha.3 (2021-04-29)](#060-alpha3-2021-04-29)
-  - [Code Generation](#code-generation-12)
-- [0.6.0-alpha.2 (2021-04-29)](#060-alpha2-2021-04-29)
-  - [Bug Fixes](#bug-fixes-11)
   - [Code Generation](#code-generation-13)
-  - [Documentation](#documentation-8)
-  - [Features](#features-8)
-- [0.6.0-alpha.1 (2021-04-07)](#060-alpha1-2021-04-07)
+- [0.6.0-alpha.2 (2021-04-29)](#060-alpha2-2021-04-29)
   - [Bug Fixes](#bug-fixes-12)
-  - [Build System](#build-system-1)
   - [Code Generation](#code-generation-14)
-  - [Code Refactoring](#code-refactoring-5)
-  - [Documentation](#documentation-9)
+  - [Documentation](#documentation-8)
   - [Features](#features-9)
-  - [Tests](#tests-6)
-- [0.5.6-alpha.1 (2020-05-28)](#056-alpha1-2020-05-28)
+- [0.6.0-alpha.1 (2021-04-07)](#060-alpha1-2021-04-07)
   - [Bug Fixes](#bug-fixes-13)
-  - [Chores](#chores-1)
-- [0.5.5-alpha.1 (2020-05-28)](#055-alpha1-2020-05-28)
-  - [Bug Fixes](#bug-fixes-14)
-  - [Chores](#chores-2)
-  - [Documentation](#documentation-10)
-- [0.5.4-alpha.1 (2020-04-07)](#054-alpha1-2020-04-07)
-  - [Bug Fixes](#bug-fixes-15)
-- [0.5.3-alpha.3 (2020-04-06)](#053-alpha3-2020-04-06)
+  - [Build System](#build-system-1)
   - [Code Generation](#code-generation-15)
   - [Code Refactoring](#code-refactoring-6)
+  - [Documentation](#documentation-9)
+  - [Features](#features-10)
+  - [Tests](#tests-7)
+- [0.5.6-alpha.1 (2020-05-28)](#056-alpha1-2020-05-28)
+  - [Bug Fixes](#bug-fixes-14)
+  - [Chores](#chores-2)
+- [0.5.5-alpha.1 (2020-05-28)](#055-alpha1-2020-05-28)
+  - [Bug Fixes](#bug-fixes-15)
+  - [Chores](#chores-3)
+  - [Documentation](#documentation-10)
+- [0.5.4-alpha.1 (2020-04-07)](#054-alpha1-2020-04-07)
+  - [Bug Fixes](#bug-fixes-16)
+- [0.5.3-alpha.3 (2020-04-06)](#053-alpha3-2020-04-06)
+  - [Code Generation](#code-generation-16)
+  - [Code Refactoring](#code-refactoring-7)
   - [Documentation](#documentation-11)
 - [0.5.3-alpha.1 (2020-04-03)](#053-alpha1-2020-04-03)
-  - [Chores](#chores-3)
+  - [Chores](#chores-4)
 - [0.5.2 (2020-04-02)](#052-2020-04-02)
   - [Documentation](#documentation-12)
 - [0.5.0 (2020-04-02)](#050-2020-04-02)
-  - [Bug Fixes](#bug-fixes-16)
+  - [Bug Fixes](#bug-fixes-17)
   - [Documentation](#documentation-13)
 - [0.4.5-alpha.1 (2020-02-29)](#045-alpha1-2020-02-29)
-  - [Bug Fixes](#bug-fixes-17)
+  - [Bug Fixes](#bug-fixes-18)
   - [Documentation](#documentation-14)
 - [0.4.4-alpha.1 (2020-02-14)](#044-alpha1-2020-02-14)
-  - [Bug Fixes](#bug-fixes-18)
+  - [Bug Fixes](#bug-fixes-19)
   - [Documentation](#documentation-15)
-  - [Features](#features-10)
+  - [Features](#features-11)
   - [Unclassified](#unclassified-1)
 - [0.4.3-alpha.2 (2020-01-31)](#043-alpha2-2020-01-31)
   - [Unclassified](#unclassified-2)
@@ -161,7 +169,344 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# [0.0.0](https://github.com/ory/keto/compare/v0.13.0-alpha.0...v0.0.0) (2025-01-02)
+# [0.0.0](https://github.com/ory/keto/compare/v25.4.0...v0.0.0) (2025-11-07)
+
+# [25.4.0](https://github.com/ory/keto/compare/v0.14.0...v25.4.0) (2025-11-06)
+
+v25.4.0
+
+### Bug Fixes
+
+- Add missing values to the session method enum
+  ([6c9016a](https://github.com/ory/keto/commit/6c9016a1cbcbddf088e12b3f9768a7f620a7aa49)):
+
+  GitOrigin-RevId: 60b31e9f7d7b50dc652efc5f3a385be4adb25ba1
+
+- Add repo syncing for polis
+  ([bef7ae6](https://github.com/ory/keto/commit/bef7ae66d0543afb2edf7b06343c9b8a4a7aa47b)):
+
+  GitOrigin-RevId: e277a25d594b512b800d39dd18f36ea3d99fcf84
+
+- Better tracing in proxy HTTP
+  ([c1a8f1c](https://github.com/ory/keto/commit/c1a8f1c362172c8eaba970feb83058b798f6a371)):
+
+  GitOrigin-RevId: e66493762481986aefa8c73c676b1f7515cd29cb
+
+- Copybara script
+  ([372b1ff](https://github.com/ory/keto/commit/372b1ffd5a17aa68db977501b8b791e7c912cb26)):
+
+  GitOrigin-RevId: 14665e01451ac5fcdda148b473b8fc35d4fe21ef
+
+- Deduplicate down migrations
+  ([4af256d](https://github.com/ory/keto/commit/4af256de453ec1fd86757b70028685edfd9d2df7)):
+
+  GitOrigin-RevId: 94c68daeded4f3b6f42d079d71415d8935a74e69
+
+- **deps:** Update dependency @grpc/grpc-js to v1.8.22 [security]
+  ([7315350](https://github.com/ory/keto/commit/7315350ee43707912ae41241d6f2b8e2ab471b4f)):
+
+  GitOrigin-RevId: 5ea94eaf5494ad0e4df2cb3dac29c00e52716258
+
+- **deps:** Update go-x
+  ([ce0b6dd](https://github.com/ory/keto/commit/ce0b6dd791544bc66b6d4858f289b082781ff1bf)):
+
+  GitOrigin-RevId: 2d32f7710b9c6111a30f4e0d3cc0abc967d7dfb6
+
+- Escape IPv6 regex string
+  ([05d9151](https://github.com/ory/keto/commit/05d91511e46e328baf68c24af8d6c8a5c828859b)):
+
+  GitOrigin-RevId: cf04d7cae93aea32950a149527e2b1319af97b39
+
+- Failing CI in OSS repos
+  ([3fb907f](https://github.com/ory/keto/commit/3fb907f4a03d22a7ed7c5113523c66890ad798e7)):
+
+  GitOrigin-RevId: 3d1f84b0f0d006971aea9489322b3e0f32a6a7e3
+
+- Fix data race in tests
+  ([bfa248e](https://github.com/ory/keto/commit/bfa248ed009c17ceb2b2b534e321e01a64d58e73)):
+
+  GitOrigin-RevId: 2b9034acee61c15e7d212c0bee04223f61b0a37a
+
+- Force SQL operator precedence in pagination v2 to ensure nid isolation
+  ([0c61e34](https://github.com/ory/keto/commit/0c61e3437a941c2ceca39961d499225a95eb2cca)):
+
+  GitOrigin-RevId: 451cbe6c4322222e36c182b4f7c1ff6cb9396dde
+
+- **hydra:** Instrument metrics also on public endpoints
+  ([9ea9bba](https://github.com/ory/keto/commit/9ea9bbaf299f2c5870b133a7c3253b6dd1fb0f61)):
+
+  GitOrigin-RevId: 84ae1df26bd3d9a025655e50792ea7312f250cca
+
+- **hydra:** Use prometheus metrics instead of SQA metrics
+  ([f39a886](https://github.com/ory/keto/commit/f39a886c1696845b513c858aa0860083084856be)):
+
+  GitOrigin-RevId: 2ca878d66e4ab101af51bc32f8606ce6c3af0587
+
+- Ignore non SQL files when applying migrations
+  ([417c228](https://github.com/ory/keto/commit/417c228106c94dd61b6093b06139fcb6d117372e)):
+
+  GitOrigin-RevId: d71381b874c6e0dea3cba143a6a643334059ce1e
+
+- Implicit transactions for cockroach v23.5 and simplified migration logic
+  ([25047e1](https://github.com/ory/keto/commit/25047e11708b88c315ee2d28fe029d6fa487cf5d)):
+
+  GitOrigin-RevId: 003ed88700d3eeb853132633d447dd223489e3be
+
+- Include go.mod in vendored oryx
+  ([03b3bae](https://github.com/ory/keto/commit/03b3bae550514685d5dc2e654b55bfeeaff62d22)):
+
+  GitOrigin-RevId: 20365bbe6b2cf95ac7973bcca9056455d2cb3803
+
+- Jsonx.ApplyJSONPatch
+  ([f8c1f68](https://github.com/ory/keto/commit/f8c1f68fb7d74db950732edd7f8a9910acb5ad46)):
+
+  GitOrigin-RevId: 43c10801f5051e3d5fbea5f4f5e90394f6da0fbb
+
+- **keto:** Use helpers from ory/x for pagination
+  ([a545c35](https://github.com/ory/keto/commit/a545c355fd32f3368e4a992efacb54e3c76fa4db)):
+
+  GitOrigin-RevId: 6a878b4697f1ecf9c7375b7eafdfae713f22414b
+
+- Otlp sampling rate default
+  ([bcede30](https://github.com/ory/keto/commit/bcede304eceb0725600214f1170a28af9472485a)):
+
+  GitOrigin-RevId: 8a01bded7d8eca0ac3a81de793286144aab16426
+
+- Print correct content of down migrations
+  ([727b2a9](https://github.com/ory/keto/commit/727b2a90faae40b3ea2e6e5eb2e94f4f5284aa97)):
+
+  GitOrigin-RevId: 48b1efa8d3d4f6c6648d3941f67f622fdfb0075c
+
+- Reject invalid migration names
+  ([322c7de](https://github.com/ory/keto/commit/322c7de2db5302f8aa234bdad27fd0dc4dfc45bc)):
+
+  GitOrigin-RevId: 43aeadc2c058c3a35092527f54999083674a2ee8
+
+- Remove keto from gitignore
+  ([ed39ad7](https://github.com/ory/keto/commit/ed39ad7aa9df3b49998af8024644f75f38d91f3b)):
+
+  GitOrigin-RevId: 576af019d48783dec6e0ecdca359f510b6f76eb5
+
+- Return 404 on schema file not exists
+  ([6ef117e](https://github.com/ory/keto/commit/6ef117ee3d26b580dc88452f08ef4d2edde46753)):
+
+  GitOrigin-RevId: 398176da632eecdbd95062c7872a90b6c8662006
+
+- Revert "fix: otlp sampling rate default
+  ([#9055](https://github.com/ory/keto/issues/9055))"
+  ([957b1e2](https://github.com/ory/keto/commit/957b1e20a33adaf8489286aac9ea288266b9c3a5)):
+
+  GitOrigin-RevId: 9de37a48b68c7ee29caefb01c83f1a78999dc15b
+
+- Simplify and fix Copybara sync job
+  ([54f5194](https://github.com/ory/keto/commit/54f519448a88fc5572a5b6e6d853af32a0aaa4d4)):
+
+  GitOrigin-RevId: 115f1ba1aa8f92d9c546046b37d4fb27dacedec8
+
+- Upgrade to go 1.24.4 to fix CVE-2025-4673
+  ([e8c829a](https://github.com/ory/keto/commit/e8c829a27c932becc4869e23c215bbb16ecc3306)):
+
+  GitOrigin-RevId: 64950988a466bbdb4f25b8d9f5c416ff591c00bf
+
+- Use batch insert to speed up project changes
+  ([4b00d6f](https://github.com/ory/keto/commit/4b00d6fb72995e649eddab49eb737b7eb4974105)):
+
+  GitOrigin-RevId: 88cb2bc82c71b9576ba5d21010c4c585a7ad3af9
+
+- Use git hash to render ory x schema references
+  ([21ccf06](https://github.com/ory/keto/commit/21ccf06dc3c9c5c5dd06c9818e72a506451303e6)):
+
+  GitOrigin-RevId: e07209f10a002acbb0df2f66f6f8746279032733
+
+- Use hard-coded fallback key instead of panic
+  ([7f3ca7f](https://github.com/ory/keto/commit/7f3ca7fc583a8563c72fc142129b9026c8069b27)):
+
+  GitOrigin-RevId: d7a2270bbf5360288199e9632b2eac6cbc29737c
+
+- Use main branch for polis
+  ([1add72c](https://github.com/ory/keto/commit/1add72c7604c93cb4c75a0c8f0455cf0cc26627c)):
+
+  GitOrigin-RevId: 04533493184c6abdc3a211daffd98f6b68e1c9cc
+
+### Chores
+
+- Update opencontainers/runc to v1.3.3
+  ([ff61c2c](https://github.com/ory/keto/commit/ff61c2c0ec84f66b0e6794186d723d1b7f6ab0c2)):
+
+  GitOrigin-RevId: 85b6b76ebe34f6d7c0304074c945a5dc0b7e6a45
+
+### Code Refactoring
+
+- Move database meta functions to root x folder for reusability
+  ([7d38bde](https://github.com/ory/keto/commit/7d38bded099a3fc6aad07d803ea0235643969ff4)):
+
+  GitOrigin-RevId: 30ee938ea5f1d19bac8967e0ebfe2d595ec27d2b
+
+### Features
+
+- Add allowed domains configuration for captcha
+  ([bff0ddd](https://github.com/ory/keto/commit/bff0dddc32e9a17bf25b274d0542f8be5353352c)):
+
+  GitOrigin-RevId: 03395362054593f07ff6405c2a747256b5ff528e
+
+- Autoconfigure kratos-changefeed
+  ([a3124de](https://github.com/ory/keto/commit/a3124de67ad523cbd3b1b82c08e81083dddfc50b)):
+
+  GitOrigin-RevId: 8e684d3c1ed528798c0c81cc4330858c54a39acf
+
+- Bump CRDB, establish foreign key,
+  ([a4c9c0f](https://github.com/ory/keto/commit/a4c9c0fa04563a15a2d07f2f57c11a1641769a12)):
+
+  GitOrigin-RevId: ca6d967ddb2e2eeb2d2eaf25e851652dddbc1d47
+
+- **changelog-oel:** Choose identity schema in self-service registration and
+  login flows
+  ([c4d8d94](https://github.com/ory/keto/commit/c4d8d94277a7830c1f4c243da06aacf0bd94e541)):
+
+  GitOrigin-RevId: 8d6ee03cc8181d3277100a4b7412a3a113799964
+
+- **changelog-oel:** Improved tracing and metrics for the high-performance SQL
+  connection pool
+  ([b806441](https://github.com/ory/keto/commit/b806441c52be04d3e8cf3cc11e5de173a3f56111)),
+  closes [hi#performance](https://github.com/hi/issues/performance):
+
+  GitOrigin-RevId: 9480f8997f7641b0f1276ca2ae0f25781428fdbc
+
+- **changelog:** Migrate http router to stdlib router
+  ([d1a6695](https://github.com/ory/keto/commit/d1a66955b899c55d1f79f31288588037a5c7991b)):
+
+  GitOrigin-RevId: ebd7ec330a4f7b9826cb70ba36ba2f727ea64c96
+
+- Custom page token column extraction
+  ([e526b19](https://github.com/ory/keto/commit/e526b19df9b28f874ee8a589759c76735abf7d07)):
+
+  GitOrigin-RevId: 706b836df390da53f8ef3e3800391b206b715949
+
+- Domain telemetry improvements
+  ([b4688a8](https://github.com/ory/keto/commit/b4688a85fac65ab989b9bd7356e23d2c06bdcf85)):
+
+  GitOrigin-RevId: 9a0825160976ff16b7a39024e650ecfaf9ce82a5
+
+- Expose Ory-Error-Id HTTP header
+  ([60ff7ff](https://github.com/ory/keto/commit/60ff7ff2ad35409d3e42540cf7fd2ff801f3abde)):
+
+  GitOrigin-RevId: 3fe0ebc17fec11dd8135bfdd8e6facfd99ac2d5a
+
+- **hydra:** Split up persister
+  ([ced95f8](https://github.com/ory/keto/commit/ced95f8c37235a996125ae5d572926bdad73f588)):
+
+  GitOrigin-RevId: 203cf926c1613fcbb20393c5b7d0af25c7aecb15
+
+- Improve domain telemetry for OSS (Hydra & Kratos)
+  ([b9901ca](https://github.com/ory/keto/commit/b9901ca74e8cb6f5f39b0318042222ca18d406f0)):
+
+  GitOrigin-RevId: b8aebb0ad8bae28ee8295b9052b2f60603244b7e
+
+- Improved events and identity recent activity
+  ([34b5658](https://github.com/ory/keto/commit/34b565845be524785fc2de04359ef0d1ff70500b)):
+
+  GitOrigin-RevId: 3ef8d9391a402381025baaf25ba3c8c199805b7e
+
+- **keto:** Encrypted page tokens
+  ([1483345](https://github.com/ory/keto/commit/14833453189f977095d3e67580312addbb18a201)):
+
+  GitOrigin-RevId: 5ff9f6eaca77de3ebc8f116a9943e4dde01cdd47
+
+- Move config testhelpers to ory/x
+  ([8e82c30](https://github.com/ory/keto/commit/8e82c30c66400f7b7bbd21431ef1bdc2cc9baea5)):
+
+  GitOrigin-RevId: fd484445e9715760231f7f86ec212d094e826377
+
+- Use stdlib HTTP router in Kratos
+  ([3fd922c](https://github.com/ory/keto/commit/3fd922c87ee05ea2a8ef8fce16948b2c04a9f1e4)):
+
+  GitOrigin-RevId: 799513e99acbf43a05fe3113ffda45d2fff2a9e0
+
+- Use vendored ory/x
+  ([a1e3ef6](https://github.com/ory/keto/commit/a1e3ef64ec6b3f5dd213443c3fae653ef79ae7ff)):
+
+  GitOrigin-RevId: 994f3b754946ca5b2bd1bab0fe20532f5d5ab62f
+
+### Tests
+
+- Add golangci-lint config and GHA
+  ([90979c1](https://github.com/ory/keto/commit/90979c18b59800778681608184e668f705dd5b2e)):
+
+  GitOrigin-RevId: eb14c9f38e2b98d11a78ee0b90fd8f4f689abd3d
+
+- **e2e:** Ensure Keto pagination works
+  ([459771e](https://github.com/ory/keto/commit/459771ef408179319c278b58b23e3eb7d805c044)):
+
+  GitOrigin-RevId: a4c5a79b37cff38c4aa62db5c8d8a757210fc48e
+
+- **hydra:** Add snapshots for login & consent requests
+  ([e51f852](https://github.com/ory/keto/commit/e51f852b8f0c156fa1f5fa36a10b2b5f33afc6cd)):
+
+  GitOrigin-RevId: 47d041cf207af6c3e9e21bf3016e5ea0cf044344
+
+- Improve pgxpool tests
+  ([49ec5d5](https://github.com/ory/keto/commit/49ec5d5e51b26b959c6e0db974fd4cd4ef1a63b5)):
+
+  GitOrigin-RevId: 2008231a7e0eb05276484b7eda885899c67f0a3a
+
+- Resturcture and improve integration tests
+  ([7c2e2dc](https://github.com/ory/keto/commit/7c2e2dcdae7eacc772b12424c36933f4eff65d04)):
+
+  GitOrigin-RevId: 83dfe53cfc33f0a974d7b2f7eeed81d017d2518c
+
+# [0.14.0](https://github.com/ory/keto/compare/v0.13.0-alpha.0...v0.14.0) (2025-03-06)
+
+We're excited to announce the release of **ORY Keto v0.14.0**! This update
+builds on our commitment to providing a robust, flexible, and high-performance
+authorization server by introducing new features, important fixes, and several
+improvements that enhance both user and developer experiences.
+
+---
+
+- **New Features & Enhancements**
+  - **Batched and Chunked Operations:** Improve performance with batched and
+    chunked insertion and deletion of relation tuples and UUID mappings by
+    @alnr.
+  - **GRPC Server Options:** Configure your gRPC server with additional options
+    for more fine-tuned control, thanks to @Demonsthere’s contribution.
+  - **Listen Files Update:** The server now writes listen files with the actual
+    address, allowing for better test setups by using port 0, contributed by
+    @zepatrik.
+  - **Inspect Option:** Easily inspect registry details with the new Inspect
+    option added by @alnr.
+- **Fixes & Corrections**
+  - Fixed HTTP request metrics and various smaller bugs to ensure smoother
+    operations.
+  - Resolved issues with persister initialization when operating without a
+    network, courtesy of @alnr.
+- **Quality Improvements & Automation**
+  - Introduced new dependency updates and security fixes, including upgrades to
+    critical libraries like Cobra, gRPC, and OpenTelemetry.
+  - Integrated a kubescape image scanner to enhance security checks, contributed
+    by @Demonsthere.
+
+---
+
+A warm welcome to our new contributors:
+
+- **@BenjaminNolan** – for their first contribution in fixing a typo in our
+  validation module.
+- **@patrickduffy95** – for their inaugural contribution in introducing batch
+  checks for relations.
+- **@eroznik** – for their first contribution, enhancing HTTP request metrics.
+
+We appreciate your contributions and the fresh perspectives you bring to ORY
+Keto!
+
+---
+
+For a complete list of changes, please see the
+[full changelog](https://github.com/ory/keto/compare/v0.13.0-alpha.0...v0.14.0).
+
+Thank you for being part of the ORY community. We’re excited to see how these
+updates help you build even more secure and scalable solutions.
+
+Happy coding!
 
 ### Bug Fixes
 
@@ -173,7 +518,6 @@
 - Missing persister when initializing without network
   ([#1525](https://github.com/ory/keto/issues/1525))
   ([e675d5b](https://github.com/ory/keto/commit/e675d5bc230922e8379f87e7f8bbb9360cfee005)):
-
   - fix: missing persister when initializing without network
   - chore: ignore CVE-2024-3154
 
@@ -188,13 +532,17 @@
   (`CONSTRAINT keto_relation_tuples_uuid_pkey PRIMARY KEY (shard_id ASC, nid ASC)`)
   so it should not impact the query planner.
 
+### Code Generation
+
+- Pin v0.14.0 release commit
+  ([613779b](https://github.com/ory/keto/commit/613779b6dad89f6fb6b4fa6968f13ede11963c97))
+
 ### Features
 
 - Add ContextKeyDialFunc ([#1534](https://github.com/ory/keto/issues/1534))
   ([567ceb9](https://github.com/ory/keto/commit/567ceb9144b0e1efa4a88820cf23f53e1e8ec77d))
 - Add grpc server opts config ([#1524](https://github.com/ory/keto/issues/1524))
   ([7278e44](https://github.com/ory/keto/commit/7278e44bd0ac94e5f70f3c347a6e9cccfda11df6)):
-
   - feat: add grpc server opts config
   - chore: bump base image
   - chore: temp ignore cve
@@ -202,13 +550,11 @@
 - Add Inspect option to registry
   ([#1523](https://github.com/ory/keto/issues/1523))
   ([213cfa5](https://github.com/ory/keto/commit/213cfa5c7d4a7ebc3957658178a5b1cd24c2669a)):
-
   - chore: add alnr to codeowners
   - feat: add Inspect option
 
 - Batch check relations ([#1521](https://github.com/ory/keto/issues/1521))
   ([d670d50](https://github.com/ory/keto/commit/d670d508a618f5f881a215085beb6ac5371b8a85)):
-
   - batch check relations
   - rename path
   - shared parallelized function. batch size and parallelization configurable
@@ -283,7 +629,6 @@ Improves performance, SDKs, and resolves minor issues.
 - Postgres docker-compose startup
   ([#1295](https://github.com/ory/keto/issues/1295))
   ([a4218d7](https://github.com/ory/keto/commit/a4218d70fed0e19eb61869f9ac9f55e2a9d54d0e)):
-
   - Fix starting docker-compose-postgres.yml
   - bump docker image version
   - make format
@@ -313,19 +658,16 @@ Improves performance, SDKs, and resolves minor issues.
 - Fix multiline comments from proto files breaking tables
   ([#1431](https://github.com/ory/keto/issues/1431))
   ([ef9132d](https://github.com/ory/keto/commit/ef9132da66487db078d53cbcf186451d695cc697)):
-
   - Add markdown.tmpl file for bufbuild
   - fix typo
 
   Signed-off-by: Cléo Rebert <cleo.rebert-ext@numspot.com>
-
   - docs: add issue reference
 
 ### Features
 
 - Add distroless ([#1348](https://github.com/ory/keto/issues/1348))
   ([f0839ee](https://github.com/ory/keto/commit/f0839ee6e5f521214ea70117221ae601ff9eb94a)):
-
   - feat: add distroless
   - Update Dockerfile-build
   - Update Dockerfile-distroless-static
@@ -335,7 +677,6 @@ Improves performance, SDKs, and resolves minor issues.
   ([129902b](https://github.com/ory/keto/commit/129902b68d8548c1df1be1e2aaee9baebcc0aaf2))
 - Add tracing to fetcher ([#1294](https://github.com/ory/keto/issues/1294))
   ([4ffb7bc](https://github.com/ory/keto/commit/4ffb7bcbbc6a43a9402e39bddf4a2d11e87f4b48)):
-
   - feat: add tracing to fetcher
   - rerun CI
 
@@ -348,7 +689,6 @@ Improves performance, SDKs, and resolves minor issues.
 - Clearer error messages when not using block
   ([#1393](https://github.com/ory/keto/issues/1393))
   ([a3b5494](https://github.com/ory/keto/commit/a3b5494300ca4cc64b516b168e8a3e6aa2033c75)):
-
   - feat: clearer error messages when not using block
   - dont timeout if block is used
   - consolidate block flag into grpc client package
@@ -359,7 +699,6 @@ Improves performance, SDKs, and resolves minor issues.
 
 - Enable GRPC metrics ([#1302](https://github.com/ory/keto/issues/1302))
   ([91c12c9](https://github.com/ory/keto/commit/91c12c935d34952db5b3798990b346091041dff8)):
-
   - feat: enable GRPC metrics
   - fix: test and server registration
   - fix: GRPC metrics
@@ -367,7 +706,6 @@ Improves performance, SDKs, and resolves minor issues.
 
 - Improve emitting of events ([#1314](https://github.com/ory/keto/issues/1314))
   ([5028c75](https://github.com/ory/keto/commit/5028c75aaaad7a73e51b4477f0d65d73806e5c16)):
-
   - feat: improve emitting of events
   - rename event constants
   - move events package
@@ -380,7 +718,6 @@ Improves performance, SDKs, and resolves minor issues.
 - Write to UUID mapper and relation tuples in one SQL transaction
   ([#1340](https://github.com/ory/keto/issues/1340))
   ([eeeecf6](https://github.com/ory/keto/commit/eeeecf657b76c7b18f308433399b231abfcf6e46)):
-
   - fix: lint
   - feat: wrap an SQL transaction around the UUID mapper's and the relation
     tuple manager's write operations
@@ -451,7 +788,6 @@ autogen: pin v0.11.0-alpha.0.pre.1 release commit
 
 - Docs broken links ([#1254](https://github.com/ory/keto/issues/1254))
   ([e646380](https://github.com/ory/keto/commit/e646380d5457df99f75ecd7e26d6fe2ed33b7b49)):
-
   - fix: docs broken links
   - fix: edit proto files to fix links
 
@@ -484,13 +820,11 @@ autogen: pin v0.11.0-alpha.0.pre.1 release commit
   ([03cac63](https://github.com/ory/keto/commit/03cac633ea8f340b84b1ef219cef0b9cf4d71353))
 - Relax OPL parsing ([#1059](https://github.com/ory/keto/issues/1059))
   ([a15c5ad](https://github.com/ory/keto/commit/a15c5ad8704458a5e8bdcfaa80f80b45f9696418)):
-
   - Allow semicolons in more places
   - Allow commas in more places
 
 - Tiny stuff ([#1211](https://github.com/ory/keto/issues/1211))
   ([719a7d5](https://github.com/ory/keto/commit/719a7d5d1bfd77c594528df821f20a061dc2b848)):
-
   - fix: tracing in persistence.sql.TraverseSubjectSetRewrite
   - fix: incorrect HTTP return code
 
@@ -656,7 +990,6 @@ changelog for all the other fixes and features we included.
 
   http*request*\* metrics contain data related only to /metrics/prometheus
   endpoint. This commit adds endpoints from non-monitoring routers.
-
   - fix: register read and write routers with PrometheusManager
   - fix: register read and write routers with PrometheusManager p2
   - fix: register read and write routers with PrometheusManager p3
@@ -671,7 +1004,6 @@ changelog for all the other fixes and features we included.
 
 - Sdk generation
   ([acc1546](https://github.com/ory/keto/commit/acc1546e6be8d5fa42c25904189b2aa688934ade)):
-
   - fix: better error handling
   - chore: remove old httpclient
 
@@ -738,7 +1070,6 @@ changelog for all the other fixes and features we included.
   ([5f056b7](https://github.com/ory/keto/commit/5f056b78aaeb40f85e70fb62623d3ba55fb23553)):
 
   This adds two new flags to the Keto CLI:
-
   - --insecure-disable-transport-security: Use plaintext instead of TLS
   - --insecure-skip-hostname-verification: Use TLS, but do not verify the
     certificate
@@ -1281,7 +1612,6 @@ be returned if `subject` is still used.
   ([f4253b8](https://github.com/ory/keto/commit/f4253b8a555afdee718be94140ca4fd4175c1413)):
 
   The `keto namespace validate` command now additionally supports:
-
   - validation of namespaces in config files
   - validation of a directory specified in config files
 
@@ -2431,12 +2761,10 @@ Signed-off-by: aeneasr <aeneas@ory.sh>
 - Adds ability to update a role using PUT
   ([#14](https://github.com/ory/keto/issues/14))
   ([97ccbe6](https://github.com/ory/keto/commit/97ccbe6d808823c56901ad237878aa6d53cddeeb)):
-
   - transfer UpdateRoleMembers from https://github.com/ory/hydra/pull/768 to
     keto
   - fix tests by using right http method & correcting sql request
   - Change behavior to overwrite the whole role instead of just the members.
-
   * small sql migration fix
 
 - Adds log message when telemetry is active

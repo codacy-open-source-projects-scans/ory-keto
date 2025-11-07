@@ -20,7 +20,6 @@ import (
 	"github.com/ory/keto/cmd"
 	cliclient "github.com/ory/keto/cmd/client"
 	"github.com/ory/keto/internal/relationtuple"
-	"github.com/ory/keto/internal/x"
 	"github.com/ory/keto/internal/x/dbx"
 	"github.com/ory/keto/ketoapi"
 )
@@ -34,8 +33,8 @@ type (
 		createTuple(t *testing.T, r *ketoapi.RelationTuple)
 		deleteTuple(t *testing.T, r *ketoapi.RelationTuple)
 		deleteAllTuples(t *testing.T, q *ketoapi.RelationQuery)
-		queryTuple(t *testing.T, q *ketoapi.RelationQuery, opts ...x.PaginationOptionSetter) *ketoapi.GetResponse
-		queryTupleErr(t *testing.T, expected herodot.DefaultError, q *ketoapi.RelationQuery, opts ...x.PaginationOptionSetter)
+		queryTuple(t *testing.T, q *ketoapi.RelationQuery, opts ...paginationOptionSetter) *ketoapi.GetResponse
+		queryTupleErr(t *testing.T, expected herodot.DefaultError, q *ketoapi.RelationQuery, opts ...paginationOptionSetter)
 		check(t *testing.T, r *ketoapi.RelationTuple) bool
 		batchCheck(t *testing.T, r []*ketoapi.RelationTuple) []checkResponse
 		batchCheckErr(t *testing.T, requestTuples []*ketoapi.RelationTuple, expected herodot.DefaultError)
@@ -146,10 +145,13 @@ func TestServeConfig(t *testing.T) {
 	closeServer := startServer(ctx, t, reg)
 	t.Cleanup(closeServer)
 
-	_, _, readAddr := getAddr(t, "read")
-
-	for !healthReady(t, "http://"+readAddr) {
-		t.Log("Waiting for health check to be ready")
+	var readAddr string
+	for {
+		_, _, readAddr = getAddr(t, "read")
+		t.Logf("Waiting for health check to be ready: %s", readAddr)
+		if healthReady(t, "http://"+readAddr) {
+			break
+		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Log("Health check is ready")
