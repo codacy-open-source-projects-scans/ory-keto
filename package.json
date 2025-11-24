@@ -12,7 +12,7 @@
   },
   "prettier": "ory-prettier-styles",
   "dependencies": {
-    "@openapitools/openapi-generator-cli": "2.24.0",
+    "@openapitools/openapi-generator-cli": "2.25.2",
     "grpc-tools": "1.13.0",
     "grpc_tools_node_protoc_ts": "5.3.3"
   },
@@ -25,6 +25,7 @@
     "prettier-plugin-packagejson": "2.5.19"
   },
   "overrides": {
-    "axios": ">=1.12.0"
+    "axios": ">=1.12.0",
+    "glob": ">=11.1.0"
   }
 }
