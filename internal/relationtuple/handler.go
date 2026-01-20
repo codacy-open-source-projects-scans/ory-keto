@@ -4,6 +4,10 @@
 package relationtuple
 
 import (
+	"github.com/ory/x/httprouterx"
+	"github.com/ory/x/httpx"
+	"github.com/ory/x/logrusx"
+	"github.com/ory/x/otelx"
 	"google.golang.org/grpc"
 
 	"github.com/ory/keto/internal/driver/config"
@@ -17,13 +21,13 @@ type (
 		ManagerProvider
 		MapperProvider
 		config.Provider
-		x.LoggerProvider
-		x.WriterProvider
-		x.TracingProvider
+		logrusx.Provider
+		httpx.WriterProvider
+		otelx.Provider
 		x.NetworkIDProvider
 		x.TransactorProvider
 	}
-	handler struct {
+	Handler struct {
 		d handlerDeps
 	}
 )
@@ -33,26 +37,26 @@ const (
 	WriteRouteBase = "/admin/relation-tuples"
 )
 
-func NewHandler(d handlerDeps) *handler {
-	return &handler{
+func NewHandler(d handlerDeps) *Handler {
+	return &Handler{
 		d: d,
 	}
 }
 
-func (h *handler) RegisterReadRoutes(r *x.ReadRouter) {
+func (h *Handler) RegisterReadRoutes(r *httprouterx.RouterPublic) {
 	r.GET(ReadRouteBase, h.getRelations)
 }
 
-func (h *handler) RegisterWriteRoutes(r *x.WriteRouter) {
+func (h *Handler) RegisterWriteRoutes(r *httprouterx.RouterAdmin) {
 	r.PUT(WriteRouteBase, h.createRelation)
 	r.DELETE(WriteRouteBase, h.deleteRelations)
 	r.PATCH(WriteRouteBase, h.patchRelationTuples)
 }
 
-func (h *handler) RegisterReadGRPC(s *grpc.Server) {
+func (h *Handler) RegisterReadGRPC(s *grpc.Server) {
 	rts.RegisterReadServiceServer(s, h)
 }
 
-func (h *handler) RegisterWriteGRPC(s *grpc.Server) {
+func (h *Handler) RegisterWriteGRPC(s *grpc.Server) {
 	rts.RegisterWriteServiceServer(s, h)
 }

@@ -9,8 +9,9 @@ import (
 
 	"github.com/ory/pop/v6"
 	"github.com/ory/x/healthx"
+	"github.com/ory/x/httpx"
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/otelx"
-	prometheus "github.com/ory/x/prometheusx"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/ory/keto/internal/expand"
 	"github.com/ory/keto/internal/persistence"
 	"github.com/ory/keto/internal/relationtuple"
-	"github.com/ory/keto/internal/x"
 )
 
 type (
@@ -27,8 +27,8 @@ type (
 		Init(context.Context) error
 
 		config.Provider
-		x.LoggerProvider
-		x.WriterProvider
+		logrusx.Provider
+		httpx.WriterProvider
 
 		relationtuple.ManagerProvider
 		expand.EngineProvider
@@ -41,8 +41,6 @@ type (
 
 		HealthHandler() *healthx.Handler
 		Tracer(ctx context.Context) *otelx.Tracer
-		MetricsHandler() *prometheus.Handler
-		PrometheusManager() *prometheus.MetricsManager
 
 		ReadRouter(ctx context.Context) http.Handler
 		WriteRouter(ctx context.Context) http.Handler

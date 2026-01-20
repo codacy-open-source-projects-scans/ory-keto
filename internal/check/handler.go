@@ -10,15 +10,15 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/pkg/errors"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/ory/herodot"
+	"github.com/ory/x/httprouterx"
+	"github.com/ory/x/httpx"
+	"github.com/ory/x/logrusx"
 
 	"github.com/ory/keto/internal/check/checkgroup"
 	"github.com/ory/keto/internal/driver/config"
@@ -33,8 +33,8 @@ type (
 		EngineProvider
 		relationtuple.ManagerProvider
 		relationtuple.MapperProvider
-		x.LoggerProvider
-		x.WriterProvider
+		logrusx.Provider
+		httpx.WriterProvider
 		config.Provider // TODO does this need to be instantiated?
 	}
 	Handler struct {
@@ -57,7 +57,7 @@ const (
 	BatchRoute       = "/relation-tuples/batch/check"
 )
 
-func (h *Handler) RegisterReadRoutes(r *x.ReadRouter) {
+func (h *Handler) RegisterReadRoutes(r *httprouterx.RouterPublic) {
 	r.GET(RouteBase, h.getCheckMirrorStatus)
 	r.GET(OpenAPIRouteBase, h.getCheckNoStatus)
 	r.POST(RouteBase, h.postCheckMirrorStatus)
@@ -121,7 +121,7 @@ type checkPermission struct {
 //	  200: checkPermissionResult
 //	  400: errorGeneric
 //	  default: errorGeneric
-func (h *Handler) getCheckNoStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) getCheckNoStatus(w http.ResponseWriter, r *http.Request) {
 	allowed, err := h.getCheck(r.Context(), r.URL.Query())
 	if err != nil {
 		h.d.Writer().WriteError(w, r, err)
@@ -159,7 +159,7 @@ type checkPermissionOrError struct {
 //	  400: errorGeneric
 //	  403: checkPermissionResult
 //	  default: errorGeneric
-func (h *Handler) getCheckMirrorStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) getCheckMirrorStatus(w http.ResponseWriter, r *http.Request) {
 	allowed, err := h.getCheck(r.Context(), r.URL.Query())
 	if err != nil {
 		h.d.Writer().WriteError(w, r, err)
@@ -236,7 +236,7 @@ type postCheckPermissionBody struct {
 //	  200: checkPermissionResult
 //	  400: errorGeneric
 //	  default: errorGeneric
-func (h *Handler) postCheckNoStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) postCheckNoStatus(w http.ResponseWriter, r *http.Request) {
 	allowed, err := h.postCheck(r.Context(), r.Body, r.URL.Query())
 	if err != nil {
 		h.d.Writer().WriteError(w, r, err)
@@ -286,7 +286,7 @@ type postCheckPermissionOrErrorBody struct {
 //	  400: errorGeneric
 //	  403: checkPermissionResult
 //	  default: errorGeneric
-func (h *Handler) postCheckMirrorStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) postCheckMirrorStatus(w http.ResponseWriter, r *http.Request) {
 	allowed, err := h.postCheck(r.Context(), r.Body, r.URL.Query())
 	if err != nil {
 		h.d.Writer().WriteError(w, r, err)
@@ -401,7 +401,7 @@ type BatchCheckPermissionResult struct {
 //	  200: batchCheckPermissionResult
 //	  400: errorGeneric
 //	  default: errorGeneric
-func (h *Handler) batchCheck(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) batchCheck(w http.ResponseWriter, r *http.Request) {
 	results, err := h.doBatchCheck(r.Context(), r.Body, r.URL.Query())
 	if err != nil {
 		h.d.Writer().WriteError(w, r, err)
