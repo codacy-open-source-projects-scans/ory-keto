@@ -5,7 +5,6 @@ package relationtuple
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/gofrs/uuid"
@@ -114,7 +113,10 @@ func (s *SubjectSet) UniqueID() uuid.UUID {
 }
 
 func (s *SubjectSet) String() string {
-	return fmt.Sprintf("%s:%s#%s", s.Namespace, s.Object, s.Relation)
+	if s == nil {
+		return ""
+	}
+	return s.Namespace + ":" + s.Object.String() + "#" + s.Relation
 }
 
 func (t *RelationTuple) ToQuery() *RelationQuery {
@@ -130,7 +132,12 @@ func (t *RelationTuple) String() string {
 	if t == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s:%s#%s@%s", t.Namespace, t.Object, t.Relation, t.Subject)
+
+	subject := ""
+	if t.Subject != nil {
+		subject = t.Subject.String()
+	}
+	return t.Namespace + ":" + t.Object.String() + "#" + t.Relation + "@" + subject
 }
 
 func (t *RelationTuple) FromProto(proto *rts.RelationTuple) *RelationTuple {
