@@ -27,8 +27,8 @@ import (
 )
 
 func TestWriteHandlers(t *testing.T) {
-	r := httprouterx.NewTestRouterAdmin(t)
-	reg := driver.NewSqliteTestRegistry(t, false)
+	r := httprouterx.NewRouterAdmin()
+	reg := driver.NewSqliteTestRegistry(t)
 
 	var nspaces []*namespace.Namespace
 	addNamespace := func(t *testing.T) *namespace.Namespace {
@@ -42,9 +42,8 @@ func TestWriteHandlers(t *testing.T) {
 		return n
 	}
 
-	h := relationtuple.NewHandler(reg)
-	h.RegisterWriteRoutes(r)
-	h.RegisterReadRoutes(r.ToPublic())
+	relationtuple.NewWriteHandler(reg).RegisterWriteRoutes(r)
+	relationtuple.NewReadHandler(reg).RegisterReadRoutes(r.ToPublic())
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 

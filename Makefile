@@ -84,9 +84,11 @@ build:
 #
 .PHONY: buf-gen
 buf-gen: node_modules
-	go tool -n protoc-gen-doc # Apparently on the first run the path is the temporary build output and will be deleted again. Later invocations use the correct go build cache path.
-	PATH=$$PATH:$$(dirname "$$(go tool -n protoc-gen-doc)") \
-		go tool buf generate proto
+	go tool buf generate proto
+	# The gen/go module has its own go.mod, so license scanners resolve its
+	# license at that module root. buf generate does not emit a LICENSE, so copy
+	# ours in to keep the module covered after every regeneration.
+	cp LICENSE gen/go/LICENSE
 	make format
 	@echo "All code was generated successfully!"
 
@@ -118,7 +120,7 @@ test-docs-samples:
 
 .PHONY: fuzz-test
 fuzz-test:
-	go test -tags=sqlite -fuzz=FuzzParser -fuzztime=10s ./internal/schema
+	go test -fuzz=FuzzParser -fuzztime=10s ./internal/schema
 
 .PHONY: libfuzzer-fuzz-test
 libfuzzer-fuzz-test: .bin/go114-fuzz-build

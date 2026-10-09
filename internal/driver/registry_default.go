@@ -10,8 +10,14 @@ import (
 	"net/http"
 	"sync"
 
+	"connectrpc.com/connect"
 	"github.com/gofrs/uuid"
 	"github.com/ory/herodot"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/health"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/ory/pop/v6"
 	"github.com/ory/x/contextx"
 	"github.com/ory/x/dbal"
@@ -24,42 +30,40 @@ import (
 	"github.com/ory/x/networkx"
 	"github.com/ory/x/otelx"
 	"github.com/ory/x/popx"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/health"
 
+	rts "github.com/ory/keto/gen/go/ory/keto/relation_tuples/v1alpha2"
+	"github.com/ory/keto/gen/go/ory/keto/relation_tuples/v1alpha2/relationtuplesconnect"
 	"github.com/ory/keto/internal/check"
+	"github.com/ory/keto/internal/check/step"
 	"github.com/ory/keto/internal/driver/config"
 	"github.com/ory/keto/internal/expand"
 	"github.com/ory/keto/internal/persistence"
 	"github.com/ory/keto/internal/persistence/sql"
 	"github.com/ory/keto/internal/persistence/sql/migrations/uuidmapping"
 	"github.com/ory/keto/internal/relationtuple"
-	"github.com/ory/keto/internal/x"
 	"github.com/ory/keto/ketoctx"
-	rts "github.com/ory/keto/proto/ory/keto/relation_tuples/v1alpha2"
 )
 
 var (
-	_ relationtuple.ManagerProvider        = (*RegistryDefault)(nil)
-	_ relationtuple.MapperProvider         = (*RegistryDefault)(nil)
-	_ relationtuple.MappingManagerProvider = (*RegistryDefault)(nil)
-	_ httpx.WriterProvider                 = (*RegistryDefault)(nil)
-	_ logrusx.Provider                     = (*RegistryDefault)(nil)
-	_ Registry                             = (*RegistryDefault)(nil)
-	_ rts.VersionServiceServer             = (*RegistryDefault)(nil)
+	_ relationtuple.ManagerProvider               = (*RegistryDefault)(nil)
+	_ relationtuple.MapperProvider                = (*RegistryDefault)(nil)
+	_ relationtuple.MappingManagerProvider        = (*RegistryDefault)(nil)
+	_ httpx.WriterProvider                        = (*RegistryDefault)(nil)
+	_ logrusx.Provider                            = (*RegistryDefault)(nil)
+	_ Registry                                    = (*RegistryDefault)(nil)
+	_ relationtuplesconnect.VersionServiceHandler = (*RegistryDefault)(nil)
 )
 
 type (
 	RegistryDefault struct {
+		relationtuplesconnect.UnimplementedVersionServiceHandler
 		p               persistence.Persister
-		traverser       relationtuple.Traverser
 		mb              *popx.MigrationBox
 		extraMigrations []fs.FS
 		l               *logrusx.Logger
 		w               herodot.Writer
 		ce              *check.Engine
+		ck              *step.Executor
 		ee              *expand.Engine
 		c               *config.Config
 		conn            *pop.Connection
@@ -67,6 +71,7 @@ type (
 		mapper          *relationtuple.Mapper
 		readOnlyMapper  *relationtuple.Mapper
 		replaceMapperNs func(ctx context.Context) uuid.UUID
+		replaceShardID  func() uuid.UUID
 
 		init1, init2       sync.Once
 		init1err, init2err error
@@ -77,28 +82,29 @@ type (
 		tracer        *otelx.Tracer
 		tracerWrapper ketoctx.TracerWrapper
 
-		defaultUnaryInterceptors  []grpc.UnaryServerInterceptor
-		defaultStreamInterceptors []grpc.StreamServerInterceptor
-		defaultGRPCServerOptions  []grpc.ServerOption
-		defaultHttpMiddlewares    []func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
-		grpcTransportCredentials  credentials.TransportCredentials
-		defaultMigrationOptions   []popx.MigrationBoxOption
-		healthReadyCheckers       healthx.ReadyCheckers
-		dbOpts                    []func(details *pop.ConnectionDetails)
+		defaultHandlerOptions      []connect.HandlerOption
+		defaultConnectInterceptors []connect.Interceptor
+		defaultHttpMiddlewares     []func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
+		grpcTransportCredentials   credentials.TransportCredentials
+		defaultMigrationOptions    []popx.MigrationBoxOption
+		healthReadyCheckers        healthx.ReadyCheckers
+		dbOpts                     []func(details *pop.ConnectionDetails)
 	}
 	ReadHandler interface {
+		Handler
 		RegisterReadRoutes(r *httprouterx.RouterPublic)
-		RegisterReadGRPC(s *grpc.Server)
 	}
 	WriteHandler interface {
+		Handler
 		RegisterWriteRoutes(r *httprouterx.RouterAdmin)
-		RegisterWriteGRPC(s *grpc.Server)
 	}
 	OPLSyntaxHandler interface {
+		Handler
 		RegisterSyntaxRoutes(r httprouterx.Router)
-		RegisterSyntaxGRPC(s *grpc.Server)
 	}
-	Handler interface{}
+	Handler interface {
+		ProtoFiles() []protoreflect.FileDescriptor
+	}
 )
 
 func (r *RegistryDefault) Mapper() *relationtuple.Mapper {
@@ -166,8 +172,8 @@ func (r *RegistryDefault) HealthServer() *health.Server {
 	return r.healthServer
 }
 
-func (r *RegistryDefault) GetVersion(_ context.Context, _ *rts.GetVersionRequest) (*rts.GetVersionResponse, error) {
-	return &rts.GetVersionResponse{Version: config.Version}, nil
+func (r *RegistryDefault) GetVersion(_ context.Context, _ *connect.Request[rts.GetVersionRequest]) (*connect.Response[rts.GetVersionResponse], error) {
+	return connect.NewResponse(&rts.GetVersionResponse{Version: config.Version}), nil
 }
 
 func (r *RegistryDefault) Tracer(ctx context.Context) *otelx.Tracer {
@@ -231,18 +237,18 @@ func (r *RegistryDefault) NetworkID(ctx context.Context) uuid.UUID {
 	return r.p.NetworkID(ctx)
 }
 
+func (r *RegistryDefault) NewShardID() uuid.UUID {
+	if r.replaceShardID != nil {
+		return r.replaceShardID()
+	}
+	return uuid.Must(uuid.NewV4())
+}
+
 func (r *RegistryDefault) MapperNamespace(ctx context.Context) uuid.UUID {
 	if r.replaceMapperNs != nil {
 		return r.replaceMapperNs(ctx)
 	}
 	return r.p.NetworkID(ctx)
-}
-
-func (r *RegistryDefault) Traverser() relationtuple.Traverser {
-	if r.traverser == nil {
-		panic("no traverser, but expected to have one")
-	}
-	return r.traverser
 }
 
 func (r *RegistryDefault) PermissionEngine() *check.Engine {
@@ -257,6 +263,13 @@ func (r *RegistryDefault) ExpandEngine() *expand.Engine {
 		r.ee = expand.NewEngine(r)
 	}
 	return r.ee
+}
+
+func (r *RegistryDefault) Checker() check.Checker {
+	if r.ck == nil {
+		r.ck = step.NewExecutor(r, step.CallLimitMiddleware())
+	}
+	return r.ck
 }
 
 func (r *RegistryDefault) MigrationBox(ctx context.Context, opts ...popx.MigrationBoxOption) (*popx.MigrationBox, error) {
@@ -349,9 +362,15 @@ func (r *RegistryDefault) InitWithoutNetworkID(ctx context.Context) error {
 			return
 		}
 		r.p = p
-		r.traverser = sql.NewTraverser(p)
+		r.initEngines()
 	})
 	return r.init1err
+}
+
+func (r *RegistryDefault) initEngines() {
+	_ = r.PermissionEngine()
+	_ = r.ExpandEngine()
+	_ = r.Checker()
 }
 
 func (r *RegistryDefault) Init(ctx context.Context) (err error) {
@@ -370,12 +389,4 @@ func (r *RegistryDefault) Init(ctx context.Context) (err error) {
 		r.p.SetNetwork(network.ID)
 	})
 	return r.init2err
-}
-
-var _ x.TransactorProvider = (*RegistryDefault)(nil)
-
-func (r *RegistryDefault) Transactor() interface {
-	Transaction(ctx context.Context, f func(ctx context.Context) error) error
-} {
-	return r.Persister()
 }

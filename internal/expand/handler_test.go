@@ -29,9 +29,9 @@ func TestRESTHandler(t *testing.T) {
 		Name: "expand handler",
 	}
 
-	reg := driver.NewSqliteTestRegistry(t, false, driver.WithNamespaces([]*namespace.Namespace{nspace}))
+	reg := driver.NewSqliteTestRegistry(t, driver.WithNamespaces([]*namespace.Namespace{nspace}))
 	h := expand.NewHandler(reg)
-	r := httprouterx.NewTestRouterPublic(t)
+	r := httprouterx.NewRouterPublic()
 	h.RegisterReadRoutes(r)
 	ts := httptest.NewServer(r)
 	defer ts.Close()

@@ -4,6 +4,8 @@
 package check_test
 
 import (
+	"context"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,10 +14,11 @@ import (
 	"github.com/ory/herodot"
 
 	"github.com/ory/keto/internal/check"
-	"github.com/ory/keto/internal/check/checkgroup"
+	"github.com/ory/keto/internal/check/step"
 	"github.com/ory/keto/internal/driver"
 	"github.com/ory/keto/internal/driver/config"
 	"github.com/ory/keto/internal/testhelpers"
+	"github.com/ory/keto/internal/x/dbx"
 	"github.com/ory/keto/ketoapi"
 )
 
@@ -294,6 +297,9 @@ var testcases = []struct {
 		expectedNonMembers: []string{
 			"File:secret-doc#canEdit@User:Eve",
 			"File:secret-doc#canView@User:Eve",
+
+			"File:secret-doc#canEdit@Eve",
+			"File:secret-doc#canView@Eve",
 		},
 	},
 	{
@@ -370,23 +376,23 @@ func TestEngine(t *testing.T) {
 			e := check.NewEngine(reg)
 			ctx := t.Context()
 
-			// company → engineering → backend → User:Alice requires exactly 3 hops.
+			// company → engineering → backend → User:Alice requires exactly 2 hops.
 			tuple := testhelpers.TupleFromString(t, "Group:company#members@User:Alice")
 
 			assert.Equal(t, 5, reg.Config(ctx).MaxReadDepth())
 
-			res, err := e.CheckIsMember(ctx, tuple, 2)
+			res, err := e.CheckIsMember(ctx, tuple, 1)
 			require.NoError(t, err)
-			assert.False(t, res, "depth=2 is not enough for a 3-hop chain")
+			assert.False(t, res, "depth=1 is not enough for a 2-hop chain")
 
-			res, err = e.CheckIsMember(ctx, tuple, 3)
+			res, err = e.CheckIsMember(ctx, tuple, 2)
 			require.NoError(t, err)
-			assert.True(t, res, "depth=3 is enough for a 3-hop chain")
+			assert.True(t, res, "depth=2 is enough for a 2-hop chain")
 
-			require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadDepth, 2))
+			require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadDepth, 1))
 			res, err = e.CheckIsMember(ctx, tuple, 5)
 			require.NoError(t, err)
-			assert.False(t, res, "global max-depth=2 overrides request depth=5")
+			assert.False(t, res, "global max-depth=1 overrides request depth=5")
 
 			require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadDepth, 3))
 			res, err = e.CheckIsMember(ctx, tuple, 0)
@@ -402,29 +408,438 @@ func TestEngine(t *testing.T) {
 
 			targetTuples := []*ketoapi.RelationTuple{
 				testhelpers.APITupleFromString(t, "Group:finance#member@User:Alice"),                   // direct
-				testhelpers.APITupleFromString(t, "File:team-report#editors@User:Alice"),               // 2-hop
-				testhelpers.APITupleFromString(t, "File:team-report#viewers@User:Alice"),               // 3-hop
+				testhelpers.APITupleFromString(t, "File:team-report#editors@User:Alice"),               // 1-hop
+				testhelpers.APITupleFromString(t, "File:team-report#viewers@User:Alice"),               // 2-hop
 				testhelpers.APITupleFromString(t, "NonExistent:x#rel@User:Alice"),                      // non-existent namespace
 				testhelpers.APITupleFromString(t, "Group:finance#member@User:Eve"),                     // unknown subject
 				testhelpers.APITupleFromString(t, "File:team-report#viewers@File:team-report#editors"), // via subject set
 			}
 
-			// At depth=2, the 3-hop viewers chain is not resolved.
-			results, err := e.BatchCheck(ctx, targetTuples, 2)
+			// At depth=1, the 2-hop viewers chain is not resolved.
+			results, err := e.BatchCheck(ctx, targetTuples, 1)
 			require.NoError(t, err)
 
-			require.Equal(t, checkgroup.IsMember, results[0].Membership)
-			require.Equal(t, checkgroup.IsMember, results[1].Membership)
-			require.Equal(t, checkgroup.NotMember, results[2].Membership)
-			require.Equal(t, checkgroup.MembershipUnknown, results[3].Membership)
+			require.Equal(t, check.IsMember, results[0].Membership)
+			require.Equal(t, check.IsMember, results[1].Membership)
+			require.Equal(t, check.MembershipUnknown, results[2].Membership)
+			require.Equal(t, check.LimitationMaxDepthExceeded, results[2].Limitation)
+			require.Equal(t, check.MembershipUnknown, results[3].Membership)
 			require.EqualError(t, results[3].Err, herodot.ErrNotFound().Error())
-			require.Equal(t, checkgroup.NotMember, results[4].Membership)
-			require.Equal(t, checkgroup.IsMember, results[5].Membership)
+			require.Equal(t, check.MembershipUnknown, results[4].Membership)
+			require.Equal(t, check.LimitationMaxDepthExceeded, results[4].Limitation)
+			require.Equal(t, check.IsMember, results[5].Membership)
 
-			// At depth=3, the 3-hop viewers chain resolves
+			// At depth=2, the 2-hop viewers chain resolves
 			results, err = e.BatchCheck(ctx, targetTuples, 3)
 			require.NoError(t, err)
-			require.Equal(t, checkgroup.IsMember, results[2].Membership)
+			require.Equal(t, check.IsMember, results[2].Membership)
 		})
 	})
+}
+
+// widthLimitScenario fans out Resource:doc#readers into three groups.
+// With width=1 only Group:alpha is explored; the rest are truncated.
+var widthLimitScenario = testhelpers.Scenario{
+	Name:           "Width Limit",
+	OrderedShardID: true,
+	Opl: `
+		class User implements Namespace {}
+		class Group implements Namespace {
+			related: {
+				member: (User | SubjectSet<Group, "member">)[]
+			}
+		}
+		class Resource implements Namespace {
+			related: {
+				readers: (User | SubjectSet<Group, "member">)[]
+			}
+		}
+	`,
+	//	Resource:doc#readers
+	//	├── Group:alpha#member ──► Group:alpha-sub#member ──► User:Alice (explored first at width=1)
+	//	├── Group:beta#member  ──► Group:beta-sub#member  ──► User:Bob   (truncated at width=1)
+	//	└── Group:gamma#member ──► Group:gamma-sub#member                (truncated at width=1)
+	InputTuples: []string{
+		// Insertion order determines DB return order for expand
+		"Resource:doc#readers@Group:alpha#member",
+		"Resource:doc#readers@Group:beta#member",
+		"Resource:doc#readers@Group:gamma#member",
+
+		"Group:alpha#member@Group:alpha-sub#member",
+		"Group:beta#member@Group:beta-sub#member",
+		"Group:gamma#member@Group:gamma-sub#member",
+
+		"Group:alpha-sub#member@User:Alice",
+		"Group:beta-sub#member@User:Bob",
+		// Eve is in none of the groups.
+	},
+}
+
+func TestWidthLimit(t *testing.T) {
+	type tc struct {
+		name               string
+		subject            string
+		width              int // 0 means default 100
+		expectedMembership check.Membership
+		expectedLimitation check.LimitationKind
+		expectedIsMember   bool
+	}
+
+	tests := []tc{
+		{
+			name:               "no limit: Alice is IsMember",
+			subject:            "User:Alice",
+			expectedMembership: check.IsMember,
+			expectedIsMember:   true,
+		},
+		{
+			name:               "no limit: Eve is NotMember",
+			subject:            "User:Eve",
+			expectedMembership: check.NotMember,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "width=1: Eve is indeterminate",
+			subject:            "User:Eve",
+			width:              1,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxWidthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			// Bob is only in beta-sub, which is always truncated at width=1.
+			name:               "width=1: member only in truncated branch is indeterminate",
+			subject:            "User:Bob",
+			width:              1,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxWidthExceeded,
+			expectedIsMember:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			widthLimitScenario.Run(t, func(t *testing.T, reg driver.Registry) {
+				ctx := t.Context()
+				e := check.NewEngine(reg)
+				if tc.width > 0 {
+					require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadWidth, tc.width))
+				}
+
+				res := e.CheckRelationTuple(ctx, testhelpers.TupleFromString(t, "Resource:doc#readers@"+tc.subject), 10)
+				require.NoError(t, res.Err)
+				assert.Equal(t, tc.expectedMembership, res.Membership)
+				assert.Equal(t, tc.expectedLimitation, res.Limitation)
+
+				isMember, err := e.CheckIsMember(ctx, testhelpers.TupleFromString(t, "Resource:doc#readers@"+tc.subject), 10)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedIsMember, isMember)
+			})
+
+			// in strict mode, expect Error when limitation is hit
+			widthLimitScenario.WithStrict(true).Run(t, func(t *testing.T, reg driver.Registry) {
+				ctx := t.Context()
+				e := check.NewEngine(reg)
+				if tc.width > 0 {
+					require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadWidth, tc.width))
+				}
+
+				res := e.CheckRelationTuple(ctx, testhelpers.TupleFromString(t, "Resource:doc#readers@"+tc.subject), 10)
+				require.NoError(t, res.Err)
+				assert.Equal(t, tc.expectedMembership, res.Membership)
+				assert.Equal(t, tc.expectedLimitation, res.Limitation)
+
+				if tc.expectedLimitation != "" {
+					_, err := e.CheckIsMember(ctx, testhelpers.TupleFromString(t, "Resource:doc#readers@"+tc.subject), 10)
+					require.Error(t, err)
+					var he *herodot.DefaultError
+					require.ErrorAs(t, err, &he)
+					assert.Contains(t, he.Reason(), string(tc.expectedLimitation))
+				} else {
+					isMember, err := e.CheckIsMember(ctx, testhelpers.TupleFromString(t, "Resource:doc#readers@"+tc.subject), 10)
+					require.NoError(t, err)
+					assert.Equal(t, tc.expectedIsMember, isMember)
+				}
+			})
+		})
+	}
+}
+
+// Alice is in both deep and short chains.
+// Depth of 3 is needed to reach Alice via shortRel.
+// Depth of 5 is needed to reach Alice via deepRel.
+var depthLimitScenario = testhelpers.Scenario{
+	Name: "Depth Limit",
+	Opl: `
+		class User implements Namespace {}
+		class Group implements Namespace {
+			related: {
+				members: (User | SubjectSet<Group, "members">)[]
+			}
+		}
+		class Resource implements Namespace {
+			related: {
+				deepRel: (User | SubjectSet<Group, "members">)[]
+				shortRel: (User | SubjectSet<Group, "members">)[]
+			}
+			permits = {
+				union: (ctx:Context) => 
+						this.related.deepRel.includes(ctx.subject) 
+						|| this.related.shortRel.includes(ctx.subject),
+				intersection: (ctx:Context) => 
+						this.related.deepRel.includes(ctx.subject) 
+						&& this.related.shortRel.includes(ctx.subject),
+				shortButNotDeep: (ctx:Context) => this.related.shortRel.includes(ctx.subject) 
+						&& !this.related.deepRel.includes(ctx.subject),
+
+				// notEither simulates a client that authorizes users when Keto returns NotMember
+				notEither: (ctx:Context) => !this.permits.union(ctx),
+			}
+		}
+	`,
+	InputTuples: []string{
+		"Resource:doc#deepRel@Group:deep#members",
+		"Resource:doc#shortRel@Group:short#members",
+
+		"Group:deep#members@Group:deep1#members",
+		"Group:deep1#members@Group:deep2#members",
+		"Group:deep2#members@Group:deep3#members",
+		"Group:deep3#members@Group:deep4#members",
+		"Group:deep4#members@User:Alice",
+
+		"Group:short#members@Group:short1#members",
+		"Group:short1#members@Group:short2#members",
+		"Group:short2#members@User:Alice",
+		"Group:short2#members@User:Charlie",
+	},
+}
+
+func TestDepthLimit(t *testing.T) {
+	type tc struct {
+		name               string
+		tuple              string
+		depth              int
+		expectedMembership check.Membership
+		expectedLimitation check.LimitationKind
+		expectedIsMember   bool
+	}
+
+	tests := []tc{
+		{
+			name:               "union: too shallow depth for both branches yields NotMember",
+			tuple:              "Resource:doc#union@User:Alice",
+			depth:              2,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "union: enough depth for 1 Member branch yields Member",
+			tuple:              "Resource:doc#union@User:Alice",
+			depth:              4,
+			expectedMembership: check.IsMember,
+			expectedIsMember:   true,
+		},
+		{
+			name:               "union: enough depth for 1 NotMember branch yields Unknown",
+			tuple:              "Resource:doc#union@User:Bob", // Bob is in no branch
+			depth:              4,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "intersection: too shallow depth for both branches yields Unknown",
+			tuple:              "Resource:doc#intersection@User:Alice",
+			depth:              2,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "intersection: enough depth for only 1 branch yields Unknown",
+			tuple:              "Resource:doc#intersection@User:Alice",
+			depth:              4,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "intersection: enough depth for both branches yields Member",
+			tuple:              "Resource:doc#intersection@User:Alice",
+			depth:              5,
+			expectedMembership: check.IsMember,
+			expectedIsMember:   true,
+		},
+		{
+			name:               "shortButNotDeep: too shallow depth for both branches yields Unknown",
+			tuple:              "Resource:doc#shortButNotDeep@User:Alice",
+			depth:              2,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "shortButNotDeep: enough depth for only 1 branch yields Unknown",
+			tuple:              "Resource:doc#shortButNotDeep@User:Alice",
+			depth:              4,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+		{
+			name:               "shortButNotDeep: user only in shortRel yields Member at sufficient depth",
+			tuple:              "Resource:doc#shortButNotDeep@User:Charlie",
+			depth:              7,
+			expectedMembership: check.IsMember,
+			expectedIsMember:   true,
+		},
+		{
+			name:               "notEither: not enough depth for any branch yields Unknown",
+			tuple:              "Resource:doc#notEither@User:Alice",
+			depth:              2,
+			expectedMembership: check.MembershipUnknown,
+			expectedLimitation: check.LimitationMaxDepthExceeded,
+			expectedIsMember:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			depthLimitScenario.Run(t, func(t *testing.T, reg driver.Registry) {
+				ctx := t.Context()
+				e := check.NewEngine(reg)
+				if tc.depth > 0 {
+					require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadDepth, tc.depth))
+				}
+
+				res := e.CheckRelationTuple(ctx, testhelpers.TupleFromString(t, tc.tuple), 10)
+				require.NoError(t, res.Err)
+				assert.Equal(t, tc.expectedMembership, res.Membership)
+				assert.Equal(t, tc.expectedLimitation, res.Limitation)
+
+				isMember, err := e.CheckIsMember(ctx, testhelpers.TupleFromString(t, tc.tuple), 10)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedIsMember, isMember)
+			})
+
+			// in strict mode, expect Error when limitation is hit
+			depthLimitScenario.WithStrict(true).Run(t, func(t *testing.T, reg driver.Registry) {
+				ctx := t.Context()
+				e := check.NewEngine(reg)
+				if tc.depth > 0 {
+					require.NoError(t, reg.Config(ctx).Set(config.KeyLimitMaxReadDepth, tc.depth))
+				}
+
+				res := e.CheckRelationTuple(ctx, testhelpers.TupleFromString(t, tc.tuple), 10)
+				require.NoError(t, res.Err)
+				assert.Equal(t, tc.expectedMembership, res.Membership)
+				assert.Equal(t, tc.expectedLimitation, res.Limitation)
+
+				if tc.expectedLimitation != "" {
+					_, err := e.CheckIsMember(ctx, testhelpers.TupleFromString(t, tc.tuple), 10)
+					require.Error(t, err)
+					var he *herodot.DefaultError
+					require.ErrorAs(t, err, &he)
+					assert.Contains(t, he.Reason(), string(tc.expectedLimitation))
+				} else {
+					isMember, err := e.CheckIsMember(ctx, testhelpers.TupleFromString(t, tc.tuple), 10)
+					require.NoError(t, err)
+					assert.Equal(t, tc.expectedIsMember, isMember)
+				}
+			})
+		})
+	}
+}
+
+// TestCheckSnapshotIsolation verifies that a concurrent write committed between
+// two SQL queries within the same check does not affect the result.
+func TestCheckSnapshotIsolation(t *testing.T) {
+	t.Parallel()
+
+	const opl = `
+		class User implements Namespace {}
+		class Folder implements Namespace {
+			related: {
+				members: User[]
+			}
+			permits = {
+				isMember: (ctx: Context) => this.related.members.includes(ctx.subject),
+			}
+		}
+		class File implements Namespace {
+			related: {
+				parent: Folder[]
+			}
+			permits = {
+				view: (ctx: Context) => this.related.parent.traverse(p => p.permits.isMember(ctx)),
+			}
+		}
+	`
+	inputTuples := []string{
+		"File:readme#parent@Folder:docs",
+		"Folder:docs#members@User:u1", // this tuple will be deleted during check execution
+	}
+
+	var snapshotDSNs []*dbx.DsnT
+	for _, dsn := range dbx.GetDSNs(t) {
+		switch dsn.Name {
+		case "cockroach", "mysql", "postgres":
+			snapshotDSNs = append(snapshotDSNs, dsn)
+		}
+	}
+	if len(snapshotDSNs) == 0 {
+		// SQLite is excluded. pop serialises all SQLite transactions with a mutex,
+		// so the middleware's concurrent delete gets deadlocked against the outer check
+		// transaction
+		t.Skip("sqlite is excluded from snapshot isolation test; run without -short to start CockroachDB/MySQL/PostgreSQL")
+	}
+
+	for _, dsn := range snapshotDSNs {
+		t.Run("dsn="+dsn.Name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := driver.NewTestRegistry(t, dsn,
+				driver.WithOPL(opl),
+				driver.WithMapperNamespace(testhelpers.CustomMapperNamespace),
+				driver.WithConfig(config.KeyFeatureFlagStrictMode, true),
+			)
+			testhelpers.MapAndInsertTuplesFromString(t, reg, inputTuples)
+
+			ctx := t.Context()
+
+			// The delete must happen after the first SQL query in the transaction so
+			// the snapshot is already established in PostgreSQL/MySQL REPEATABLE READ
+			// (which snapshots at first statement, not at BEGIN).
+			var once sync.Once
+			middleware := func(mCtx context.Context, s check.Step, req check.CheckRequest, next func(context.Context, check.Step, check.CheckRequest) check.Result) check.Result {
+				if s.Kind() == check.StepIsAllowed && req.Tuple.Namespace == "Folder" && req.Tuple.Relation == "isMember" {
+					once.Do(func() {
+						assert.NoError(t, reg.RelationTupleManager().DeleteRelationTuples(t.Context(),
+							testhelpers.TupleFromString(t, "Folder:docs#members@User:u1"),
+						))
+					})
+				}
+				return next(mCtx, s, req)
+			}
+
+			engine := check.NewEngine(&checkerOverrideRegistry{Registry: reg, mw: middleware})
+
+			result := engine.CheckRelationTuple(ctx, testhelpers.TupleFromString(t, "File:readme#view@User:u1"), 5)
+			require.NoError(t, result.Err)
+			assert.Equal(t, check.IsMember, result.Membership,
+				"check must reflect the database state at the start of the evaluation")
+		})
+	}
+}
+
+// checkerOverrideRegistry wraps a Registry and replaces its Checker.
+// mw can be used to inject a middleware to the Executor.
+type checkerOverrideRegistry struct {
+	driver.Registry
+	mw check.Middleware
+}
+
+func (r *checkerOverrideRegistry) Checker() check.Checker {
+	return step.NewExecutor(r.Registry, r.mw)
 }

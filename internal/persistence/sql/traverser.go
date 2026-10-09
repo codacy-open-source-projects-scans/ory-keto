@@ -6,24 +6,19 @@ package sql
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gofrs/uuid"
-	"github.com/ory/pop/v6"
 	"github.com/ory/x/otelx"
 	"github.com/ory/x/sqlcon"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/ory/keto/internal/relationtuple"
 	"github.com/ory/keto/ketoapi"
 )
 
 type (
-	Traverser struct {
-		conn *pop.Connection
-		d    dependencies
-		p    *Persister
-	}
-
 	subjectExpandedRelationTupleRow struct {
 		RelationTuple
 
@@ -47,36 +42,110 @@ func whereSubject(sub relationtuple.Subject) (sqlFragment string, args []any, er
 	return sqlFragment, args, nil
 }
 
-// TraverseSubjectSetExpansion gets all subject sets for the object#relation.
-// It also checks whether the requested subject is a member of each of the returned subject sets.
-func (t *Traverser) TraverseSubjectSetExpansion(ctx context.Context, start *relationtuple.RelationTuple) (res []*relationtuple.TraversalResult, err error) {
+// buildSubjectSetTypeSQL builds an optional SQL fragment and args to filter
+// subject-set tuples by (namespace, relation) pairs. Returns empty string and
+// nil args when allowedSubjectSets is nil (no filter applied).
+func buildSubjectSetTypeSQL(allowedSubjectSets []relationtuple.SubjectSetType) (string, []any) {
+	if len(allowedSubjectSets) == 0 {
+		return "", nil
+	}
+	args := make([]any, 0, len(allowedSubjectSets)*2)
+	for _, f := range allowedSubjectSets {
+		args = append(args, f.Namespace, f.Relation)
+	}
+	return "\nAND (current.subject_set_namespace, current.subject_set_relation) IN (" + tuplePlaceholders(len(allowedSubjectSets)) + ")", args
+}
+
+// tuplePlaceholders returns n comma-separated "(?, ?)" pairs for use in a
+// row-value IN list.
+func tuplePlaceholders(n int) string {
+	return strings.TrimSuffix(strings.Repeat("(?, ?), ", n), ", ")
+}
+
+// buildFoundExpr builds the SQL expression for the found column.
+//
+// When allowedSubjectSets is empty, found is the result of the EXISTS subquery for every row.
+// When non-empty, AllowsDirect on each entry controls whether found can be true for that type:
+//   - no entries have AllowsDirect: found is always false (literal, no subquery).
+//   - all entries have AllowsDirect: found is the EXISTS result for every row.
+//   - mixed: found can be true only for rows whose type is in the AllowsDirect set
+func buildFoundExpr(allowedSubjectSets []relationtuple.SubjectSetType, subject relationtuple.Subject) (string, []any, error) {
+	var directTypes []relationtuple.SubjectSetType
+	if len(allowedSubjectSets) > 0 {
+		for _, t := range allowedSubjectSets {
+			if t.AllowsDirect {
+				directTypes = append(directTypes, t)
+			}
+		}
+		if len(directTypes) == 0 {
+			return "false", nil, nil
+		}
+	}
+
+	subjectSQL, subjectArgs, err := whereSubject(subject)
+	if err != nil {
+		return "", nil, err
+	}
+
+	existsQuery := fmt.Sprintf(`EXISTS(
+           SELECT 1 FROM keto_relation_tuples
+           WHERE nid = current.nid AND
+                 namespace = current.subject_set_namespace AND
+                 object = current.subject_set_object AND
+                 relation = current.subject_set_relation AND
+                 %s
+       )`, subjectSQL)
+
+	// No filter, or all types allow direct membership: EXISTS runs for every matched row.
+	if len(allowedSubjectSets) == 0 || len(directTypes) == len(allowedSubjectSets) {
+		return existsQuery, subjectArgs, nil
+	}
+
+	// Only some types allow direct membership: gate the EXISTS result to those
+	// types. The EXISTS subquery may still be evaluated for every returned row.
+	args := make([]any, 0, len(subjectArgs)+len(directTypes)*2)
+	args = append(args, subjectArgs...)
+	for _, t := range directTypes {
+		args = append(args, t.Namespace, t.Relation)
+	}
+	return fmt.Sprintf("(%s AND (current.subject_set_namespace, current.subject_set_relation) IN (%s))", existsQuery, tuplePlaceholders(len(directTypes))), args, nil
+}
+
+// TraverseSubjectSetExpansion gets all subject-set pointers for the object#relation and
+// checks whether the requested subject is a direct member of each. When allowedSubjectSets
+// is non-empty, only pointers matching the declared (namespace, relation) pairs are returned,
+// and AllowsDirect on each type controls whether a direct membership check(subquery) is performed.
+func (t *Persister) TraverseSubjectSetExpansion(ctx context.Context, start *relationtuple.RelationTuple, allowedSubjectSets []relationtuple.SubjectSetType) (res []*relationtuple.TraversalResult, err error) {
 	ctx, span := t.d.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.TraverseSubjectSetExpansion")
 	defer otelx.End(span, &err)
 
-	targetSubjectSQL, targetSubjectArgs, err := whereSubject(start.Subject)
+	var rowCount int
+	defer func() { span.SetAttributes(attribute.Int("tuples_loaded", rowCount)) }()
+
+	foundExpr, foundArgs, err := buildFoundExpr(allowedSubjectSets, start.Subject)
 	if err != nil {
 		return nil, err
 	}
 
+	subjectSetFilterSQL, subjectSetFilterArgs := buildSubjectSetTypeSQL(allowedSubjectSets)
 	shardID := uuid.Nil
 	for {
 		var (
 			rows  []*subjectExpandedRelationTupleRow
 			limit = 1000
 		)
-		err = t.conn.WithContext(ctx).RawQuery(fmt.Sprintf(`
+		queryArgs := make([]any, 0)
+		queryArgs = append(queryArgs, foundArgs...)
+		queryArgs = append(queryArgs, t.NetworkID(ctx), shardID, start.Namespace, start.Object, start.Relation)
+		queryArgs = append(queryArgs, subjectSetFilterArgs...)
+		queryArgs = append(queryArgs, limit)
+
+		err = t.Connection(ctx).RawQuery(fmt.Sprintf(`
 SELECT current.shard_id AS shard_id,
        current.subject_set_namespace AS namespace,
        current.subject_set_object AS object,
        current.subject_set_relation AS relation,
-       EXISTS(
-           SELECT 1 FROM keto_relation_tuples
-           WHERE nid = current.nid AND
-                 namespace = current.subject_set_namespace AND
-                 object = current.subject_set_object AND
-                 relation = current.subject_set_relation AND
-                 %s  -- subject where clause
-       ) AS found
+       %s AS found
 FROM keto_relation_tuples AS current
 WHERE current.nid = ? AND
       current.shard_id > ? AND
@@ -84,14 +153,16 @@ WHERE current.nid = ? AND
       current.object = ? AND
       current.relation = ? AND
       current.subject_id IS NULL
+	  %s
 ORDER BY current.shard_id
 LIMIT ?
-`, targetSubjectSQL),
-			append(targetSubjectArgs, t.p.NetworkID(ctx), shardID, start.Namespace, start.Object, start.Relation, limit)...,
+`, foundExpr, subjectSetFilterSQL),
+			queryArgs...,
 		).All(&rows)
 		if err != nil {
 			return nil, sqlcon.HandleError(err)
 		}
+		rowCount += len(rows)
 
 		for _, r := range rows {
 			to := r.ToInternal()
@@ -116,7 +187,7 @@ LIMIT ?
 	return res, nil
 }
 
-func (t *Traverser) FindTupleWithRelations(ctx context.Context, tuple *relationtuple.RelationTuple, relations []string) (_ *relationtuple.RelationTuple, err error) {
+func (t *Persister) FindTupleWithRelations(ctx context.Context, tuple *relationtuple.RelationTuple, relations []string) (_ *relationtuple.RelationTuple, err error) {
 	ctx, span := t.d.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.FindTupleWithRelations")
 	defer otelx.End(span, &err)
 
@@ -125,8 +196,8 @@ func (t *Traverser) FindTupleWithRelations(ctx context.Context, tuple *relationt
 	}
 	var rows relationTuples
 
-	query := t.p.queryWithNetwork(ctx)
-	if err := t.p.whereQuery(ctx, query, &relationtuple.RelationQuery{
+	query := t.queryWithNetwork(ctx)
+	if err := t.whereQuery(ctx, query, &relationtuple.RelationQuery{
 		Namespace: &tuple.Namespace,
 		Object:    &tuple.Object,
 		Subject:   tuple.Subject,
@@ -140,18 +211,8 @@ func (t *Traverser) FindTupleWithRelations(ctx context.Context, tuple *relationt
 
 	// If we got any rows back, success!
 	if len(rows) > 0 {
-		r := rows[0]
-		to := r.ToInternal()
-		return to, nil
+		return rows[0].ToInternal(), nil
 	}
 
 	return nil, nil
-}
-
-func NewTraverser(p *Persister) *Traverser {
-	return &Traverser{
-		conn: p.conn,
-		d:    p.d,
-		p:    p,
-	}
 }
